@@ -18,6 +18,7 @@ package com.alibaba.dubbo.remoting.transport.netty4;
 import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.remoting.Codec2;
+import com.alibaba.dubbo.remoting.buffer.ChannelBuffer;
 import com.alibaba.dubbo.remoting.buffer.DynamicChannelBuffer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -98,18 +99,18 @@ final class NettyCodecAdapter {
             com.alibaba.dubbo.remoting.buffer.ChannelBuffer message;
             if (buffer.readable()) {
                 if (buffer instanceof DynamicChannelBuffer) {
-                    buffer.writeBytes(input.nioBuffer());
+                    writeBytes(buffer, input);
                     message = buffer;
                 } else {
                     int size = buffer.readableBytes() + input.readableBytes();
                     message = com.alibaba.dubbo.remoting.buffer.ChannelBuffers.dynamicBuffer(
                         size > bufferSize ? size : bufferSize);
                     message.writeBytes(buffer, buffer.readableBytes());
-                    message.writeBytes(input.nioBuffer());
+                    writeBytes(message, input);
                 }
             } else {
-                message = com.alibaba.dubbo.remoting.buffer.ChannelBuffers.wrappedBuffer(
-                    input.nioBuffer());
+                message = com.alibaba.dubbo.remoting.buffer.ChannelBuffers.buffer(input.capacity());
+                writeBytes(message, input);
             }
 
             NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
@@ -153,6 +154,15 @@ final class NettyCodecAdapter {
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             ctx.fireExceptionCaught(cause);
+        }
+
+        private void writeBytes(ChannelBuffer buffer, ByteBuf message){
+            if(null != buffer && message != null && message.isReadable()){
+                byte []bytes = new byte[message.readableBytes()];
+                message.readBytes(bytes);
+                buffer.writeBytes(bytes);
+                bytes = null;
+            }
         }
     }
 }

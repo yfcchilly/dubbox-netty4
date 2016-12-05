@@ -28,23 +28,23 @@ import com.alibaba.dubbo.remoting.exchange.support.Replier;
 
 /**
  * ClientToServer
- * 
+ *
  * @author william.liangf
  */
 public abstract class ClientToServerTest extends TestCase {
-    
+
     protected static final String LOCALHOST = "127.0.0.1";
-    
+
     protected ExchangeServer server;
-    
+
     protected ExchangeChannel client;
-    
+
     protected WorldHandler handler = new WorldHandler();
-    
+
     protected abstract ExchangeServer newServer(int port, Replier<?> receiver) throws RemotingException;
-    
+
     protected abstract ExchangeChannel newClient(int port) throws RemotingException;
-    
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();
@@ -67,9 +67,16 @@ public abstract class ClientToServerTest extends TestCase {
 
     @Test
     public void testFuture() throws Exception {
-        ResponseFuture future = client.request(new World("world"));
-        Hello result = (Hello)future.get();
-        Assert.assertEquals("hello,world", result.getName());
+        ResponseFuture future = null;
+
+        long startTime = System.currentTimeMillis();
+        for (int i = 1; i < 10000; i++) {
+            future = client.request(new World(newFixedString(1024)));
+            Hello result = (Hello) future.get();
+        }
+        long endTime = System.currentTimeMillis();
+        System.out.println(endTime - startTime);
+
     }
 
 //    @Test
@@ -89,5 +96,13 @@ public abstract class ClientToServerTest extends TestCase {
 //            waitter.wait();
 //        }
 //    }
+
+    private String newFixedString(int length) {
+        StringBuffer buffer = new StringBuffer("");
+        for (int i = 1; i <= length; i++) {
+            buffer.append("a");
+        }
+        return buffer.toString();
+    }
 
 }
